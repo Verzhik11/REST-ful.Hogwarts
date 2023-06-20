@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.*;
 import ru.hogwarts.school.model.Student;
 import ru.hogwarts.school.service.StudentService;
 
+import java.util.Collections;
 import java.util.List;
 
 @RestController
@@ -50,7 +51,10 @@ public class StudentController {
 
     @GetMapping("age/{age}")
     public ResponseEntity<List<Student>> getStudentByAge(@PathVariable int age) {
-        return ResponseEntity.ok(studentService.getStudentByAge(age));
+        if (age > 0) {
+            return ResponseEntity.ok(studentService.getStudentByAge(age));
+        }
+        return ResponseEntity.ok(Collections.emptyList());
     }
 
 }

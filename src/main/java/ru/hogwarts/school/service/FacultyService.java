@@ -35,7 +35,7 @@ public class FacultyService {
         return null;
     }
 
-    public Faculty deleteFaculty(Long id) {
+    public Faculty deleteFaculty(long id) {
         return faculties.remove(id);
     }
     public List<Faculty> getFacultyByColor (String color) {

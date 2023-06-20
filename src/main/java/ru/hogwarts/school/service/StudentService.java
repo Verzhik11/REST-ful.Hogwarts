@@ -34,7 +34,7 @@ public class StudentService {
         return null;
     }
 
-    public Student deleteStudent(Long id) {
+    public Student deleteStudent(long id) {
         return students.remove(id);
     }
 

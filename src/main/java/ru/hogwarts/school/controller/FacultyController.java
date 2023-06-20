@@ -1,10 +1,15 @@
 package ru.hogwarts.school.controller;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import ru.hogwarts.school.model.Faculty;
+import ru.hogwarts.school.model.Student;
 import ru.hogwarts.school.service.FacultyService;
 
+import java.util.List;
+@RestController
+@RequestMapping("faculty")
 public class FacultyController {
     private final FacultyService facultyService;
 
@@ -13,8 +18,8 @@ public class FacultyController {
     }
 
     @PostMapping
-    public ResponseEntity<Faculty> createFaculty(@RequestBody Faculty Faculty) {
-        Faculty createdFaculty = facultyService.createFaculty(Faculty);
+    public ResponseEntity<Faculty> createFaculty(@RequestBody Faculty faculty) {
+        Faculty createdFaculty = facultyService.createFaculty(faculty);
         return ResponseEntity.ok(createdFaculty);
     }
 
@@ -28,8 +33,11 @@ public class FacultyController {
     }
 
     @PutMapping
-    public ResponseEntity<Faculty> updateFaculty(@RequestBody Faculty Faculty) {
-        Faculty updateFaculty = facultyService.updateFaculty(Faculty.getId(), Faculty);
+    public ResponseEntity<Faculty> updateFaculty(@RequestBody Faculty faculty) {
+        Faculty updateFaculty = facultyService.updateFaculty(faculty);
+        if (updateFaculty == null) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        }
         return ResponseEntity.ok(updateFaculty);
 
     }
@@ -38,6 +46,9 @@ public class FacultyController {
     public ResponseEntity<Faculty> deleteFaculty(@PathVariable Long id) {
         Faculty deleteFaculty = facultyService.deleteFaculty(id);
         return ResponseEntity.ok(deleteFaculty);
-
+    }
+    @GetMapping("color/{color}")
+    public ResponseEntity <List<Faculty>> getFacultyByColor(@PathVariable String color) {
+        return ResponseEntity.ok(facultyService.getFacultyByColor(color));
     }
 }

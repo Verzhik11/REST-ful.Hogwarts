@@ -1,9 +1,12 @@
 package ru.hogwarts.school.controller;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import ru.hogwarts.school.model.Student;
 import ru.hogwarts.school.service.StudentService;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("student")
@@ -31,7 +34,10 @@ public class StudentController {
 
     @PutMapping
     public ResponseEntity<Student> updateStudent(@RequestBody Student student) {
-        Student updateStudent = studentService.updateStudent(student.getId(), student);
+        Student updateStudent = studentService.updateStudent(student);
+        if (updateStudent == null) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        }
         return ResponseEntity.ok(updateStudent);
 
     }
@@ -40,7 +46,11 @@ public class StudentController {
     public ResponseEntity<Student> deleteStudent(@PathVariable Long id) {
         Student deleteStudent = studentService.deleteStudent(id);
         return ResponseEntity.ok(deleteStudent);
+    }
 
+    @GetMapping("age/{age}")
+    public ResponseEntity<List<Student>> getStudentByAge(@PathVariable int age) {
+        return ResponseEntity.ok(studentService.getStudentByAge(age));
     }
 
 }

@@ -12,9 +12,6 @@ public class Faculty {
     private String name;
     private String color;
     public Faculty() {
-        this.id = 0;
-        this.name = "";
-        this.color = "";
     }
 
     public Faculty(long id, String name, String color) {
@@ -23,7 +20,7 @@ public class Faculty {
         this.color = color;
     }
 
-    public Long getId() {
+    public long getId() {
         return id;
     }
 

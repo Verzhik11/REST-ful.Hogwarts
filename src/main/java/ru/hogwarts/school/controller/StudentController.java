@@ -47,7 +47,7 @@ public class StudentController {
             return studentService.getStudentByAge(age);
     }
 
-    @GetMapping("/age/{min}/{max}")
+    @GetMapping("/between/{min}/{max}")
     public List<StudentDtoOut> findStudentByAgeBetween(@PathVariable int min, @PathVariable int max) {
         if (min > 0 && max > 0 && max > min) {
             return studentService.findByAgeBetween(min, max);

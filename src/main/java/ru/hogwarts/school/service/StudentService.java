@@ -2,6 +2,7 @@ package ru.hogwarts.school.service;
 
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 import ru.hogwarts.school.dto.FacultyDtoOut;
 import ru.hogwarts.school.dto.StudentDtoIn;
 import ru.hogwarts.school.dto.StudentDtoOut;
@@ -9,10 +10,12 @@ import ru.hogwarts.school.exception.FacultyNotFoundException;
 import ru.hogwarts.school.exception.StudentNotFoundException;
 import ru.hogwarts.school.mapper.FacultyMapper;
 import ru.hogwarts.school.mapper.StudentMapper;
+import ru.hogwarts.school.model.Avatar;
 import ru.hogwarts.school.model.Student;
 import ru.hogwarts.school.repository.FacultyRepository;
 import ru.hogwarts.school.repository.StudentRepository;
 
+import javax.transaction.Transactional;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -23,13 +26,15 @@ public class StudentService {
     private final StudentMapper studentMapper;
     private final FacultyRepository facultyRepository;
     private final FacultyMapper facultyMapper;
+    private final AvatarService avatarService;
 
     public StudentService(StudentRepository studentRepository, StudentMapper studentMapper,
-                          FacultyRepository facultyRepository, FacultyMapper facultyMapper) {
+                          FacultyRepository facultyRepository, FacultyMapper facultyMapper, AvatarService avatarService) {
         this.studentRepository = studentRepository;
         this.studentMapper = studentMapper;
         this.facultyRepository = facultyRepository;
         this.facultyMapper = facultyMapper;
+        this.avatarService = avatarService;
     }
 
     public StudentDtoOut createStudent (StudentDtoIn studentDtoIn) {
@@ -81,5 +86,13 @@ public class StudentService {
                 .map(Student ::getFaculty)
                 .map(facultyMapper ::tDto)
                 .orElseThrow(() -> new StudentNotFoundException(id));
+    }
+    public StudentDtoOut uploadAvatar(long id, MultipartFile multipartFile) {
+        Student student = studentRepository.findById(id)
+                .orElseThrow(() -> new StudentNotFoundException(id));
+        Avatar avatar = avatarService.create(student, multipartFile);
+        StudentDtoOut studentDtoOut = studentMapper.tDto(student);
+        studentDtoOut.setAvatarURL("http://localhost:8080/avatar/" + avatar.getId() + "/from-db");
+        return studentDtoOut;
     }
 }

@@ -43,8 +43,8 @@ public class FacultyController {
         return facultyService.deleteFaculty(id);
 
     }
-    @GetMapping("/color/{color}")
-    public List<FacultyDtoOut> getFacultyByColor(@PathVariable String color) {
+    @GetMapping
+    public List<FacultyDtoOut> getFacultyByColor(@RequestParam(required = false) String color) {
         return facultyService.getFacultyByColor(color);
     }
     @GetMapping("/colororname/{request}")

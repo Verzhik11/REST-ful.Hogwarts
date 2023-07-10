@@ -44,8 +44,8 @@ public class StudentController {
         return studentService.deleteStudent(id);
     }
 
-    @GetMapping("/age/{age}")
-    public List<StudentDtoOut> getStudentByAge(@PathVariable Integer age) {
+    @GetMapping
+    public List<StudentDtoOut> getStudentByAge(@RequestParam(required = false) Integer age) {
             return studentService.getStudentByAge(age);
     }
 

@@ -290,8 +290,8 @@ class FacultyControllerTest {
         String color = "green";
 
         when(facultyRepository.findByColorOrNameIgnoreCase("green", "green"))
-                .thenReturn(List.of(new Faculty(1, "AndY", "GrEEn"),
-                        new Faculty(2, "Elena", "GrEEn")));
+                .thenReturn(List.of(new Faculty(1L, "AndY", "GrEEn"),
+                        new Faculty(2L, "Elena", "GrEEn")));
 
         mockMvc.perform(
                         MockMvcRequestBuilders.get("/faculty/colororname/green")
@@ -313,12 +313,12 @@ class FacultyControllerTest {
     }
     @Test
     public void getStudentsByFacultyTest() throws Exception {
-       List<Student> students = List.of(new Student(1, "Alex", 16),
-               new Student(2, "Susana", 17),
-               new Student(3, "Ivan", 18),
-               new Student(4, "Sveta", 16));
-       Faculty faculty1 = new Faculty(2, "Математика", "зеленый");
-        Faculty faculty2 = new Faculty(3, "Физика", "синий");
+       List<Student> students = List.of(new Student(1L, "Alex", 16),
+               new Student(2L, "Susana", 17),
+               new Student(3L, "Ivan", 18),
+               new Student(4L, "Sveta", 16));
+       Faculty faculty1 = new Faculty(2L, "Математика", "зеленый");
+        Faculty faculty2 = new Faculty(3L, "Физика", "синий");
         students.get(0).setFaculty(faculty1);
         students.get(1).setFaculty(faculty1);
         students.get(2).setFaculty(faculty2);

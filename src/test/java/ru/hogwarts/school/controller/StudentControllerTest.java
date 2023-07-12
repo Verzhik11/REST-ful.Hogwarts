@@ -1,251 +1,386 @@
 package ru.hogwarts.school.controller;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.javafaker.Faker;
-import org.assertj.core.api.Assertions;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
+
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentMatchers;
+import org.mockito.Mockito;
+import org.mockito.internal.verification.Times;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.web.client.TestRestTemplate;
-import org.springframework.boot.test.web.server.LocalServerPort;
-import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import ru.hogwarts.school.dto.FacultyDtoOut;
-import ru.hogwarts.school.dto.StudentDtoIn;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.test.mock.mockito.SpyBean;
+import org.springframework.http.*;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
+import ru.hogwarts.school.dto.*;
 import ru.hogwarts.school.dto.StudentDtoOut;
+import ru.hogwarts.school.mapper.FacultyMapper;
+import ru.hogwarts.school.mapper.StudentMapper;
+import ru.hogwarts.school.model.Faculty;
+import ru.hogwarts.school.model.Student;
+import ru.hogwarts.school.repository.AvatarRepository;
+import ru.hogwarts.school.repository.FacultyRepository;
 import ru.hogwarts.school.repository.StudentRepository;
+import ru.hogwarts.school.service.AvatarService;
+import ru.hogwarts.school.service.StudentService;
 
 import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.*;
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-class StudentControllerTest {
-    @LocalServerPort
-    private int port;
-    @Autowired
-    private TestRestTemplate restTemplate;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.*;
+
+@WebMvcTest(controllers = StudentController.class)
+public class StudentControllerTest {
 
     @Autowired
-    private StudentController studentController;
-    @Autowired
+    private MockMvc mockMvc;
+
+    @MockBean
+    private FacultyRepository facultyRepository;
+
+    @MockBean
     private StudentRepository studentRepository;
+    @MockBean
+    private AvatarRepository avatarRepository;
+
+    @SpyBean
+    private StudentService studentService;
+    @SpyBean
+    private AvatarService avatarService;
+
+    @SpyBean
+    private StudentMapper studentMapper;
+
+    @SpyBean
+    private FacultyMapper facultyMapper;
+
+    @Autowired
+    private ObjectMapper objectMapper;
+
+    private final Faker faker = new Faker();
 
     @Test
-    public void contextLoad() throws Exception {
-        Assertions.assertThat(studentController).isNotNull();
+    public void createStudentTest() throws Exception {
+        FacultyDtoIn facultyDtoIn = generateFacultyDto();
+        Faculty faculty = new Faculty();
+        faculty.setId(1L);
+        faculty.setName(facultyDtoIn.getName());
+        faculty.setColor(facultyDtoIn.getColor());
+        when(facultyRepository.save(ArgumentMatchers.any())).thenReturn(faculty);
+        when(facultyRepository.findById(1L)).thenReturn(Optional.of(faculty));
+
+        StudentDtoIn studentDtoIn = generateStudentDto();
+        studentDtoIn.setFaculty_id(faculty.getId());
+        Student student = new Student();
+        student.setId(1L);
+        student.setName(studentDtoIn.getName());
+        student.setAge(studentDtoIn.getAge());
+        when(studentRepository.save(ArgumentMatchers.any())).thenReturn(student);
+
+        mockMvc.perform(
+                        MockMvcRequestBuilders.post("/student")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(studentDtoIn))
+                )
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(result -> {
+                    StudentDtoOut studentDtoOut = objectMapper.readValue(
+                            result.getResponse().getContentAsString(),
+                            StudentDtoOut.class
+                    );
+                    assertThat(studentDtoOut).isNotNull();
+                    assertThat(studentDtoOut.getId()).isEqualTo(1L);
+                    assertThat(studentDtoOut.getAge()).isEqualTo(studentDtoIn.getAge());
+                    assertThat(studentDtoOut.getName()).isEqualTo(studentDtoIn.getName());
+                });
+        verify(studentRepository, new Times(1)).save(ArgumentMatchers.any());
+    }
+    @Test
+    public void updateStudentTest() throws Exception {
+        StudentDtoIn studentDtoIn = generateStudentDto();
+
+        Student oldStudent = generate(1);
+
+        when(studentRepository.findById(eq(1L))).thenReturn(Optional.of(oldStudent));
+
+        FacultyDtoIn facultyDtoIn = generateFacultyDto();
+        Faculty faculty = new Faculty();
+        faculty.setId(1L);
+        faculty.setName(facultyDtoIn.getName());
+        faculty.setColor(facultyDtoIn.getColor());
+        studentDtoIn.setFaculty_id(faculty.getId());
+        when(facultyRepository.findById(1L)).thenReturn(Optional.of(faculty));
+
+        oldStudent.setAge(studentDtoIn.getAge());
+        oldStudent.setName(studentDtoIn.getName());
+        when(studentRepository.save(ArgumentMatchers.any())).thenReturn(oldStudent);
+
+        mockMvc.perform(
+                        MockMvcRequestBuilders.put("/student/1")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(studentDtoIn))
+                ).andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(result -> {
+                    StudentDtoOut studentDtoOut = objectMapper.readValue(
+                            result.getResponse().getContentAsString(),
+                            StudentDtoOut.class
+                    );
+                    assertThat(studentDtoOut).isNotNull();
+                    assertThat(studentDtoOut.getId()).isEqualTo(1L);
+                    assertThat(studentDtoOut.getAge()).isEqualTo(studentDtoIn.getAge());
+                    assertThat(studentDtoOut.getName()).isEqualTo(studentDtoIn.getName());
+                });
+        verify(studentRepository, Mockito.times(1)).save(ArgumentMatchers.any());
+        Mockito.reset(studentRepository);
+
+        // not found checking
+
+        when(studentRepository.findById(eq(2L))).thenReturn(Optional.empty());
+
+        mockMvc.perform(
+                        MockMvcRequestBuilders.put("/student/2")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(studentDtoIn))
+                ).andExpect(MockMvcResultMatchers.status().isNotFound())
+                .andExpect(result -> {
+                    String responseString = result.getResponse().getContentAsString();
+                    assertThat(responseString).isNotNull();
+                    assertThat(responseString).isEqualTo("Студент с id = 2 не найден!");
+                });
+        verify(studentRepository, never()).save(ArgumentMatchers.any());
+    }
+    @Test
+    public void getStudentTest() throws Exception {
+        Student student = generate(1);
+
+        when(studentRepository.findById(eq(1L))).thenReturn(Optional.of(student));
+
+        mockMvc.perform(
+                        MockMvcRequestBuilders.get("/student/1")
+                ).andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(result -> {
+                    StudentDtoOut studentDtoOut = objectMapper.readValue(
+                            result.getResponse().getContentAsString(),
+                            StudentDtoOut.class
+                    );
+                    assertThat(studentDtoOut).isNotNull();
+                    assertThat(studentDtoOut.getId()).isEqualTo(1L);
+                    assertThat(studentDtoOut.getAge()).isEqualTo(student.getAge());
+                    assertThat(studentDtoOut.getName()).isEqualTo(student.getName());
+                });
+
+        // not found checking
+
+        when(studentRepository.findById(eq(2L))).thenReturn(Optional.empty());
+
+        mockMvc.perform(
+                        MockMvcRequestBuilders.get("/student/2")
+                ).andExpect(MockMvcResultMatchers.status().isNotFound())
+                .andExpect(result -> {
+                    String responseString = result.getResponse().getContentAsString();
+                    assertThat(responseString).isNotNull();
+                    assertThat(responseString).isEqualTo("Студент с id = 2 не найден!");
+                });
+    }
+    @Test
+    public void deleteTest() throws Exception {
+        Student student = generate(1);
+
+        when(studentRepository.findById(eq(1L))).thenReturn(Optional.of(student));
+
+        mockMvc.perform(
+                        MockMvcRequestBuilders.delete("/student/1")
+                ).andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(result -> {
+                    StudentDtoOut studentDtoOut = objectMapper.readValue(
+                            result.getResponse().getContentAsString(),
+                            StudentDtoOut.class
+                    );
+                    assertThat(studentDtoOut).isNotNull();
+                    assertThat(studentDtoOut.getId()).isEqualTo(1L);
+                    assertThat(studentDtoOut.getAge()).isEqualTo(student.getAge());
+                    assertThat(studentDtoOut.getName()).isEqualTo(student.getName());
+                });
+        verify(studentRepository, times(1)).delete(ArgumentMatchers.any());
+        Mockito.reset(studentRepository);
+
+        // not found checking
+
+        when(studentRepository.findById(eq(2L))).thenReturn(Optional.empty());
+
+        mockMvc.perform(
+                        MockMvcRequestBuilders.delete("/student/2")
+                ).andExpect(MockMvcResultMatchers.status().isNotFound())
+                .andExpect(result -> {
+                    String responseString = result.getResponse().getContentAsString();
+                    assertThat(responseString).isNotNull();
+                    assertThat(responseString).isEqualTo("Студент с id = 2 не найден!");
+                });
+        verify(studentRepository, never()).delete(ArgumentMatchers.any());
+    }
+    @Test
+    public void getStudentByAgeTest() throws Exception {
+        List<Student> students = Stream.iterate(1, id -> id + 1)
+                .map(this::generate)
+                .limit(10)
+                .collect(Collectors.toList());
+        List<StudentDtoOut> expectedResult = students.stream()
+                .map(studentMapper::tDto)
+                .collect(Collectors.toList());
+
+        when(studentRepository.findAll()).thenReturn(students);
+
+        mockMvc.perform(
+                        MockMvcRequestBuilders.get("/student")
+                ).andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(result -> {
+                    List<StudentDtoOut> studentDtoOuts = objectMapper.readValue(
+                            result.getResponse().getContentAsString(),
+                            new TypeReference<>() {
+                            }
+                    );
+                    assertThat(studentDtoOuts)
+                            .isNotNull()
+                            .isNotEmpty();
+                    Stream.iterate(0, index -> index + 1)
+                            .limit(studentDtoOuts.size())
+                            .forEach(index -> {
+                                StudentDtoOut studentDtoOut = studentDtoOuts.get(index);
+                                StudentDtoOut expected = expectedResult.get(index);
+                                assertThat(studentDtoOut.getId()).isEqualTo(expected.getId());
+                                assertThat(studentDtoOut.getAge()).isEqualTo(expected.getAge());
+                                assertThat(studentDtoOut.getName()).isEqualTo(expected.getName());
+                            });
+                });
+
+        Integer age = students.get(0).getAge();
+        students = students.stream()
+                .filter(student -> student.getAge() == age)
+                .collect(Collectors.toList());
+        List<StudentDtoOut> expectedResult2 = students.stream()
+                .filter(student -> student.getAge() == age)
+                .map(studentMapper:: tDto)
+                .collect(Collectors.toList());
+        when(studentRepository.findByAge(eq(age))).thenReturn(students);
+
+        mockMvc.perform(
+                        MockMvcRequestBuilders.get("/student/?age={age}", age)
+                ).andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(result -> {
+                    List<StudentDtoOut> studentDtoOuts = objectMapper.readValue(
+                            result.getResponse().getContentAsString(),
+                            new TypeReference<>() {
+                            }
+                    );
+                    assertThat(studentDtoOuts)
+                            .isNotNull()
+                            .isNotEmpty();
+                    Stream.iterate(0, index -> index + 1)
+                            .limit(studentDtoOuts.size())
+                            .forEach(index -> {
+                                StudentDtoOut facultyDtoOut = studentDtoOuts.get(index);
+                                StudentDtoOut expected = expectedResult2.get(index);
+                                assertThat(facultyDtoOut.getId()).isEqualTo(expected.getId());
+                                assertThat(facultyDtoOut.getAge()).isEqualTo(expected.getAge());
+                                assertThat(facultyDtoOut.getName()).isEqualTo(expected.getName());
+                            });
+                });
+    }
+    @Test
+    public void getStudentBetweenAgeTest() throws Exception {
+        List<Student> students = Stream.iterate(1, id -> id + 1)
+                .map(this::generate)
+                .limit(10)
+                .filter(student -> student.getAge() > 10 && student.getAge() < 14)
+                .collect(Collectors.toList());
+        List<StudentDtoOut> expectedResult = students.stream()
+                .map(studentMapper::tDto)
+                .collect(Collectors.toList());
+        when(studentRepository.findByAgeBetween(10, 14)).thenReturn(students);
+        mockMvc.perform(
+                        MockMvcRequestBuilders.get("/student/between/10/14")
+                ).andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(result -> {
+                    List<StudentDtoOut> studentDtoOuts = objectMapper.readValue(
+                            result.getResponse().getContentAsString(),
+                            new TypeReference<>() {
+                            }
+                    );
+                    assertThat(studentDtoOuts)
+                            .isNotNull()
+                            .isNotEmpty();
+                    Stream.iterate(0, index -> index + 1)
+                            .limit(studentDtoOuts.size())
+                            .forEach(index -> {
+                                StudentDtoOut facultyDtoOut = studentDtoOuts.get(index);
+                                StudentDtoOut expected = expectedResult.get(index);
+                                assertThat(facultyDtoOut.getId()).isEqualTo(expected.getId());
+                                assertThat(facultyDtoOut.getAge()).isEqualTo(expected.getAge());
+                                assertThat(facultyDtoOut.getName()).isEqualTo(expected.getName());
+                            });
+                });
 
     }
 
-    @BeforeEach
-    public void add() {
-        StudentDtoOut studentDtoOut = new StudentDtoOut();
-        StudentDtoOut studentDtoOut1 = new StudentDtoOut();
-        studentDtoOut.setName("Alan Po");
-        studentDtoOut.setAge(18);
-        studentDtoOut1.setName("Elen Ar");
-        studentDtoOut1.setAge(19);
+    @Test
+    public void findFacultyTest() throws Exception{
+        Student student = generate(1);
+        Faculty faculty = generateFaculty(1);
+        student.setFaculty(faculty);
+
+        when(studentRepository.findById(eq(1L))).thenReturn(Optional.of(student));
+        when(facultyRepository.findById(eq(1L))).thenReturn(Optional.of(faculty));
+
+        mockMvc.perform(
+                        MockMvcRequestBuilders.get("/student/1/faculty")
+                ).andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(result -> {
+                    FacultyDtoOut facultyDtoOut = objectMapper.readValue(
+                            result.getResponse().getContentAsString(),
+                            FacultyDtoOut.class
+                    );
+                    assertThat(facultyDtoOut).isNotNull();
+                    assertThat(facultyDtoOut.getId()).isEqualTo(1L);
+                    assertThat(facultyDtoOut.getName()).isEqualTo(student.getFaculty().getName());
+                    assertThat(facultyDtoOut.getColor()).isEqualTo(student.getFaculty().getColor());
+                });
     }
 
 
-
-    @AfterEach
-    public void clean() {
-        studentRepository.deleteAll();
+    public StudentDtoIn generateStudentDto() {
+        StudentDtoIn studentDtoIn = new StudentDtoIn();
+        studentDtoIn.setAge(faker.random().nextInt(7, 18));
+        studentDtoIn.setName(faker.name().fullName());
+        return studentDtoIn;
+    }
+    private FacultyDtoIn generateFacultyDto() {
+        FacultyDtoIn facultyDtoIn = new FacultyDtoIn();
+        facultyDtoIn.setName(faker.harryPotter().house());
+        facultyDtoIn.setColor(faker.color().name());
+        return facultyDtoIn;
+    }
+    private Student generate(long id) {
+        Student student = new Student();
+        student.setId(id);
+        student.setName(faker.name().fullName());
+        student.setAge(faker.random().nextInt(7, 18));
+        return student;
+    }
+   private Faculty generateFaculty(long id) {
+        Faculty faculty = new Faculty();
+        faculty.setId(id);
+        faculty.setName(faker.harryPotter().house());
+        faculty.setColor(faker.color().name());
+        return faculty;
     }
 
-
-        @Test
-        public void testCreateStudent() {
-            StudentDtoIn studentDtoIn = new StudentDtoIn();
-            studentDtoIn.setName("John Doe");
-            studentDtoIn.setAge(20);
-
-            ResponseEntity<StudentDtoOut> response = restTemplate.postForEntity("http://localhost:" + port + "/student", studentDtoIn, StudentDtoOut.class);
-
-            assertEquals(HttpStatus.OK, response.getStatusCode());
-            StudentDtoOut createdStudent = response.getBody();
-            assertNotNull(createdStudent);
-            assertNotNull(createdStudent.getId());
-            assertEquals("John Doe", createdStudent.getName());
-            assertEquals(20, createdStudent.getAge());
-        }
-
-        @Test
-        public void testGetStudent() {
-            StudentDtoIn studentDtoIn = new StudentDtoIn();
-            studentDtoIn.setName("Jane Smith");
-            studentDtoIn.setAge(22);
-            ResponseEntity<StudentDtoOut> createResponse = restTemplate.postForEntity("http://localhost:" + port + "/student", studentDtoIn, StudentDtoOut.class);
-            StudentDtoOut createdStudent = createResponse.getBody();
-
-            ResponseEntity<StudentDtoOut> getResponse = restTemplate.getForEntity("http://localhost:" + port + "/student/{id}", StudentDtoOut.class, createdStudent.getId());
-
-            assertEquals(HttpStatus.OK, getResponse.getStatusCode());
-            StudentDtoOut retrievedStudent = getResponse.getBody();
-            assertNotNull(retrievedStudent);
-            assertEquals(createdStudent.getId(), retrievedStudent.getId());
-            assertEquals("Jane Smith", retrievedStudent.getName());
-            assertEquals(22, retrievedStudent.getAge());
-        }
-
-        @Test
-        public void testUpdateStudent() {
-            StudentDtoIn studentDtoIn = new StudentDtoIn();
-            studentDtoIn.setName("Tom White");
-            studentDtoIn.setAge(25);
-            ResponseEntity<StudentDtoOut> createResponse = restTemplate.postForEntity("http://localhost:" + port + "/students", studentDtoIn, StudentDtoOut.class);
-            StudentDtoOut createdStudent = createResponse.getBody();
-
-            StudentDtoIn updatedStudentDtoIn = new StudentDtoIn();
-            updatedStudentDtoIn.setName("Tom Green");
-            updatedStudentDtoIn.setAge(26);
-            ResponseEntity<StudentDtoOut> updateResponse = restTemplate.exchange("/student/{id}", HttpMethod.PUT, new HttpEntity<>(updatedStudentDtoIn), StudentDtoOut.class, createdStudent.getId());
-
-            assertEquals(HttpStatus.OK, updateResponse.getStatusCode());
-            StudentDtoOut updatedStudent = updateResponse.getBody();
-            assertNotNull(updatedStudent);
-            assertEquals(createdStudent.getId(), updatedStudent.getId());
-            assertEquals("Tom Green", updatedStudent.getName());
-            assertEquals(26, updatedStudent.getAge());
-        }
-
-        @Test
-        public void testDeleteStudent() {
-
-            StudentDtoIn studentDtoIn = new StudentDtoIn();
-            studentDtoIn.setName("Alice Brown");
-            studentDtoIn.setAge(23);
-            ResponseEntity<StudentDtoOut> createResponse = restTemplate.postForEntity("http://localhost:" + port + "/student", studentDtoIn, StudentDtoOut.class);
-            StudentDtoOut createdStudent = createResponse.getBody();
-
-
-            ResponseEntity<StudentDtoOut> deleteResponse = restTemplate.exchange("http://localhost:" + port + "/student/{id}", HttpMethod.DELETE, null, StudentDtoOut.class, createdStudent.getId());
-
-
-            assertEquals(HttpStatus.OK, deleteResponse.getStatusCode());
-            StudentDtoOut deletedStudent = deleteResponse.getBody();
-            assertNotNull(deletedStudent);
-            assertEquals(createdStudent.getId(), deletedStudent.getId());
-            assertEquals("Alice Brown", deletedStudent.getName());
-            assertEquals(23, deletedStudent.getAge());
-        }
-
-        @Test
-        public void testGetStudentByAge() {
-
-            StudentDtoIn studentDtoIn1 = new StudentDtoIn();
-            studentDtoIn1.setName("John Doe");
-            studentDtoIn1.setAge(20);
-            restTemplate.postForEntity("http://localhost:" + port + "/student", studentDtoIn1, StudentDtoOut.class);
-
-            StudentDtoIn studentDtoIn2 = new StudentDtoIn();
-            studentDtoIn2.setName("Jane Smith");
-            studentDtoIn2.setAge(22);
-            restTemplate.postForEntity("http://localhost:" + port + "/student", studentDtoIn2, StudentDtoOut.class);
-
-
-            ResponseEntity<List<StudentDtoOut>> response = restTemplate.exchange("http://localhost:" + port + "/student/age/{age}", HttpMethod.GET, null, new ParameterizedTypeReference<List<StudentDtoOut>>() {}, 20);
-
-
-            assertEquals(HttpStatus.OK, response.getStatusCode());
-            List<StudentDtoOut> studentsByAge = response.getBody();
-            assertNotNull(studentsByAge);
-            assertEquals(1, studentsByAge.size());
-
-            StudentDtoOut student = studentsByAge.get(0);
-            assertEquals("John Doe", student.getName());
-            assertEquals(20, student.getAge());
-        }
-
-        @Test
-        public void testFindStudentByAgeBetween() {
-
-            StudentDtoIn studentDtoIn1 = new StudentDtoIn();
-            studentDtoIn1.setName("John Doe");
-            studentDtoIn1.setAge(20);
-            restTemplate.postForEntity("http://localhost:" + port + "/student", studentDtoIn1, StudentDtoOut.class);
-
-            StudentDtoIn studentDtoIn2 = new StudentDtoIn();
-            studentDtoIn2.setName("Jane Smith");
-            studentDtoIn2.setAge(22);
-            restTemplate.postForEntity("http://localhost:" + port + "/student", studentDtoIn2, StudentDtoOut.class);
-
-
-            ResponseEntity<List<StudentDtoOut>> response = restTemplate.exchange("http://localhost:" + port + "/student/between/{min}/{max}", HttpMethod.GET, null, new ParameterizedTypeReference<List<StudentDtoOut>>() {}, 18, 25);
-
-
-            assertEquals(HttpStatus.OK, response.getStatusCode());
-            List<StudentDtoOut> studentsByAgeBetween = response.getBody();
-            assertNotNull(studentsByAgeBetween);
-            assertEquals(2, studentsByAgeBetween.size());
-
-            StudentDtoOut student1 = studentsByAgeBetween.get(0);
-            assertEquals("John Doe", student1.getName());
-            assertEquals(20, student1.getAge());
-
-            StudentDtoOut student2 = studentsByAgeBetween.get(1);
-            assertEquals("Jane Smith", student2.getName());
-            assertEquals(22, student2.getAge());
-        }
-
-        @Test
-        public void testFindFaculty() {
-
-            StudentDtoIn studentDtoIn = new StudentDtoIn();
-            studentDtoIn.setName("John Doe");
-            studentDtoIn.setAge(20);
-            ResponseEntity<StudentDtoOut> createResponse = restTemplate.postForEntity("http://localhost:" + port + "/student", studentDtoIn, StudentDtoOut.class);
-            StudentDtoOut createdStudent = createResponse.getBody();
-
-
-            ResponseEntity<FacultyDtoOut> response = restTemplate.getForEntity("http://localhost:" + port + "/student/{id}/faculty", FacultyDtoOut.class, createdStudent.getId());
-
-
-            assertEquals(HttpStatus.OK, response.getStatusCode());
-            FacultyDtoOut faculty = response.getBody();
-            assertNotNull(faculty);
-
-        }
-
-        /*@Test
-        public void testUploadAvatar() {
-            // Предварительное создание студента для тестирования
-            StudentDtoIn studentDtoIn = new StudentDtoIn();
-            studentDtoIn.setName("John Doe");
-            studentDtoIn.setAge(20);
-            ResponseEntity<StudentDtoOut> createResponse = restTemplate.postForEntity("/student", studentDtoIn, StudentDtoOut.class);
-            StudentDtoOut createdStudent = createResponse.getBody();
-
-            // Создание MultipartFile с данными о файле
-            ClassPathResource imageResource = new ClassPathResource("avatar.jpg");
-            MultipartFile multipartFile;
-            try {
-                multipartFile = new MockMultipartFile("avatar", imageResource.getInputStream());
-            } catch (IOException e) {
-                // Обработка ошибки, если не удалось получить файл
-                e.printStackTrace();
-                return;
-            }
-
-            // Отправка PATCH-запроса на /student/{id}/avatar для загрузки аватара
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.MULTIPART_FORM_DATA);
-            HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(multipartFile, headers);
-            ResponseEntity<StudentDtoOut> response = restTemplate.exchange("/student/{id}/avatar", HttpMethod.PATCH, requestEntity, StudentDtoOut.class, createdStudent.getId());
-
-            // Проверка статуса ответа и получение студента с обновленным аватаром
-            assertEquals(HttpStatus.OK, response.getStatusCode());
-            StudentDtoOut updatedStudent = response.getBody();
-            assertNotNull(updatedStudent);
-            assertNotNull(updatedStudent.getAvatarUrl());
-            // Проверка ожидаемого URL аватара
-            // ...
-        }*/
 
 }

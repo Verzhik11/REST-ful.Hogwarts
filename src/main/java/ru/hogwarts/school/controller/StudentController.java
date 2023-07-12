@@ -46,7 +46,7 @@ public class StudentController {
 
     @GetMapping
     public List<StudentDtoOut> getStudentByAge(@RequestParam(required = false) Integer age) {
-            return studentService.getStudentByAge(age);
+        return studentService.getStudentByAge(age);
     }
 
     @GetMapping("/between/{min}/{max}")
@@ -61,10 +61,25 @@ public class StudentController {
     public FacultyDtoOut findFaculty(@PathVariable long id) {
         return studentService.getFacultyByStudent(id);
     }
+
     @PatchMapping(value = "/{id}/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public StudentDtoOut uploadAvatar(@PathVariable long id,
                                       @RequestPart("avatar") MultipartFile multipartFile) {
         return studentService.uploadAvatar(id, multipartFile);
     }
 
+    @GetMapping("/getCount")
+    public Integer getCount() {
+        return studentService.getCount();
+    }
+
+    @GetMapping("/getAverageAge")
+    public Integer getAverageAge() {
+        return studentService.getAverageAge();
+    }
+
+    @GetMapping("/getLastFiveStudent")
+    public List<StudentDtoOut> getLastFiveStudent() {
+        return studentService.getLastFiveStudent();
+    }
 }

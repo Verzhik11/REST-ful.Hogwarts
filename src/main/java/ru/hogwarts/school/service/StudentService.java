@@ -2,6 +2,7 @@ package ru.hogwarts.school.service;
 
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import ru.hogwarts.school.dto.FacultyDtoOut;
 import ru.hogwarts.school.dto.StudentDtoIn;
@@ -15,7 +16,6 @@ import ru.hogwarts.school.model.Student;
 import ru.hogwarts.school.repository.FacultyRepository;
 import ru.hogwarts.school.repository.StudentRepository;
 
-import javax.transaction.Transactional;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -90,9 +90,22 @@ public class StudentService {
     public StudentDtoOut uploadAvatar(long id, MultipartFile multipartFile) {
         Student student = studentRepository.findById(id)
                 .orElseThrow(() -> new StudentNotFoundException(id));
-        Avatar avatar = avatarService.create(student, multipartFile);
-        StudentDtoOut studentDtoOut = studentMapper.tDto(student);
-        studentDtoOut.setAvatarURL("http://localhost:8080/avatar/" + avatar.getId() + "/from-db");
-        return studentDtoOut;
+        avatarService.create(student, multipartFile);
+        return studentMapper.tDto(student);
+    }
+
+    public Integer getCount() {
+       return studentRepository.getCount();
+    }
+
+    public Integer getAverageAge() {
+        return studentRepository.getAverageAge();
+    }
+
+  @Transactional(readOnly = true)
+    public List<StudentDtoOut> getLastFiveStudent() {
+        return studentRepository.getLastFiveStudent().stream()
+                .map(studentMapper :: tDto)
+                .collect(Collectors.toList());
     }
 }

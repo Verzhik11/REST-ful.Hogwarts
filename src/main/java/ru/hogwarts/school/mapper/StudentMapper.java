@@ -13,10 +13,12 @@ import java.util.Optional;
 public class StudentMapper {
     private final FacultyMapper facultyMapper;
     private final FacultyRepository facultyRepository;
+    private final AvatarMapper avatarMapper;
 
-    public StudentMapper(FacultyMapper facultyMapper, FacultyRepository facultyRepository) {
+    public StudentMapper(FacultyMapper facultyMapper, FacultyRepository facultyRepository, AvatarMapper avatarMapper) {
         this.facultyMapper = facultyMapper;
         this.facultyRepository = facultyRepository;
+        this.avatarMapper = avatarMapper;
     }
 
     public StudentDtoOut tDto(Student student) {
@@ -26,6 +28,8 @@ public class StudentMapper {
         studentDtoOut.setAge(student.getAge());
         Optional.ofNullable(student.getFaculty())
                 .ifPresent(faculty -> studentDtoOut.setFaculty(facultyMapper.tDto(faculty)));
+        Optional.ofNullable(student.getAvatar())
+                .ifPresent(avatar -> studentDtoOut.setAvatar(avatarMapper.toDto(avatar)));
         return studentDtoOut;
     }
 

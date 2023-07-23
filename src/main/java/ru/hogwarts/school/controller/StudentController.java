@@ -82,4 +82,14 @@ public class StudentController {
     public List<StudentDtoOut> getLastFiveStudent() {
         return studentService.getLastFiveStudent();
     }
+
+    @GetMapping("/getBySymbol/{symbol}")
+    public List<StudentDtoOut> getStartWithSymbolStudents(@PathVariable String symbol) {
+        return studentService.getStartWithSymbolStudents(symbol);
+    }
+    @GetMapping("/getAverageAgeByFindAll")
+    public double getAverageAgeByFindAll() {
+        return studentService.getAverageAgeByFindAll();
+
+    }
 }

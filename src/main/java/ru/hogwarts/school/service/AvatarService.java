@@ -1,5 +1,7 @@
 package ru.hogwarts.school.service;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.util.Pair;
@@ -27,6 +29,7 @@ public class AvatarService {
     private final AvatarRepository avatarRepository;
     private final Path pathToAvatarDir;
     private final AvatarMapper avatarMapper;
+    private final static Logger logger = LoggerFactory.getLogger(AvatarService.class);
 
     public AvatarService(AvatarRepository avatarRepository,
                          @Value("${path.to.avatars.folder}") String pathToAvatarDir, AvatarMapper avatarMapper) {
@@ -36,6 +39,7 @@ public class AvatarService {
     }
 
     public Avatar create(Student student, MultipartFile multipartFile) {
+        logger.info("Was invoked method for create avatar");
         try {
             String contentType = multipartFile.getContentType();
             String extension = StringUtils.getFilenameExtension(multipartFile.getOriginalFilename());
@@ -64,6 +68,7 @@ public class AvatarService {
     }
 
     private void writeToFile(Path path, byte[] data) {
+        logger.info("Was invoked method for writeToFile");
         try (FileOutputStream fileOutputStream = new FileOutputStream(path.toFile())) {
             fileOutputStream.write(data);
         } catch (IOException e) {
@@ -72,18 +77,21 @@ public class AvatarService {
     }
 
     public Pair<byte[], String> getFromDb(long id) {
+        logger.info("Was invoked method for getFromDb with id = {}", id);
         Avatar avatar = avatarRepository.findById(id)
                 .orElseThrow(() -> new AvatarNotFoundException(id));
         return Pair.of(avatar.getData(), avatar.getMediaType());
     }
 
     public Pair<byte[], String> getFromFs(long id) {
+        logger.info("Was invoked method for getFromFs with id = {}", id);
         Avatar avatar = avatarRepository.findById(id)
                 .orElseThrow(() -> new AvatarNotFoundException(id));
         return Pair.of(read(Path.of(avatar.getFilePath())), avatar.getMediaType());
     }
 
     private byte[] read(Path path) {
+        logger.info("Was invoked method for read");
         try (FileInputStream fileInputStream = new FileInputStream(path.toFile())) {
             return fileInputStream.readAllBytes();
         } catch (IOException e) {
@@ -92,11 +100,13 @@ public class AvatarService {
     }
 
     public List<Avatar> getAvatars(Integer pageNumber, Integer pageSize) {
+        logger.info("Was invoked method for get");
         PageRequest pageRequest = PageRequest.of(pageNumber - 1, pageSize);
         return avatarRepository.findAll(pageRequest).getContent();
     }
 
     public List<AvatarDto> getPage(int page, int size) {
+        logger.info("Was invoked method for getPage");
         return avatarRepository.findAll(PageRequest.of(page, size)).stream()
                 .map(avatarMapper :: toDto)
                 .collect(Collectors.toList());

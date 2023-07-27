@@ -11,6 +11,18 @@ public class Student {
     private Long id;
     private String name;
     private int age;
+
+    @Override
+    public String toString() {
+        return "Student{" +
+                "id=" + id +
+                ", name='" + name + '\'' +
+                ", age=" + age +
+                ", faculty=" + faculty +
+                ", avatar=" + avatar +
+                '}';
+    }
+
     @ManyToOne
     @JoinColumn(name = "faculty_id")
     private Faculty faculty;

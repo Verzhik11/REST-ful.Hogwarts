@@ -1,5 +1,6 @@
 package ru.hogwarts.school.controller;
 
+import liquibase.pro.packaged.S;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -12,6 +13,7 @@ import ru.hogwarts.school.model.Faculty;
 import ru.hogwarts.school.model.Student;
 import ru.hogwarts.school.service.StudentService;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -90,6 +92,17 @@ public class StudentController {
     @GetMapping("/getAverageAgeByFindAll")
     public double getAverageAgeByFindAll() {
         return studentService.getAverageAgeByFindAll();
+
+    }
+
+    @GetMapping("/getNamesInStreams")
+    public void getNamesInStreams() {
+        studentService.getNamesInStreams();
+
+    }
+    @GetMapping("/getNamesInStreamsSynchronized")
+    public void getNamesInStreamsSynchronized() {
+        studentService.getNamesInStreamsSynchronized();
 
     }
 }

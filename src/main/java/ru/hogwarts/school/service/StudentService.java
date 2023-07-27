@@ -32,6 +32,8 @@ public class StudentService {
     private final FacultyMapper facultyMapper;
     private final AvatarService avatarService;
     private final static Logger logger = LoggerFactory.getLogger(StudentService.class);
+    private Integer count = 0;
+
 
     public StudentService(StudentRepository studentRepository, StudentMapper studentMapper,
                           FacultyRepository facultyRepository, FacultyMapper facultyMapper, AvatarService avatarService) {
@@ -149,4 +151,70 @@ public class StudentService {
                 .reduce(0, Integer::sum);
         return sum;
     }
+
+    public void getNamesInStreams() {
+        List<String> names = getNamesStudents();
+        printStudentName(names.get(0));
+        printStudentName(names.get(1));
+
+        new Thread(()-> {
+            printStudentName(names.get(2));
+            printStudentName(names.get(3));
+
+        })
+                .start();
+        new Thread(() -> {
+            printStudentName(names.get(4));
+            printStudentName(names.get(5));
+
+        })
+                .start();
+
+    }
+
+    public void getNamesInStreamsSynchronized() {
+        List<String> names = getNamesStudents();
+        printStudentNameSynchronized(names.get(0));
+        printStudentNameSynchronized(names.get(1));
+
+        new Thread(()-> {
+            printStudentNameSynchronized(names.get(2));
+            printStudentNameSynchronized(names.get(3));
+
+        })
+                .start();
+        new Thread(() -> {
+            printStudentNameSynchronized(names.get(4));
+            printStudentNameSynchronized(names.get(5));
+
+        })
+                .start();
+
+    }
+    private void printStudentName(String studentName) {
+        try {
+            Thread.sleep(1000);
+            logger.info(studentName);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private synchronized void printStudentNameSynchronized(String studentName) {
+            try {
+                Thread.sleep(1000);
+                logger.info(studentName + " " + count);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            count++;
+    }
+
+    public List<String> getNamesStudents() {
+        return studentRepository.findAll().stream()
+                .map(studentMapper::tDto)
+                .map(StudentDtoOut::getName)
+                .collect(Collectors.toList());
+    }
+
 }

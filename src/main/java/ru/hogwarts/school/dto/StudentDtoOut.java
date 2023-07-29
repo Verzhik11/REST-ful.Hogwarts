@@ -7,6 +7,16 @@ public class StudentDtoOut {
     private FacultyDtoOut faculty;
     private AvatarDto avatar;
 
+    @Override
+    public String toString() {
+        return "StudentDtoOut{" +
+                "id=" + id +
+                ", name='" + name + '\'' +
+                ", age=" + age +
+                ", faculty=" + faculty +
+                ", avatar=" + avatar +
+                '}';
+    }
 
     public FacultyDtoOut getFaculty() {
         return faculty;
